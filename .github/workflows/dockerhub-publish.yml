@@ -1,0 +1,42 @@
+name: Docker
+
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+on:
+  push:
+    branches:
+      - master
+    release:
+      types: [published]
+
+env:
+  IMAGE_ID: ${{ secrets.DOCKER_REPOSITORY_NAME }}
+
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Build image
+        run: |
+          docker build . --file Dockerfile --tag $IMAGE_ID
+
+      - name: Tag image
+        if: github.event.action == 'published'
+        run: |
+          VERSION="v$(echo "$(grep "^version =" Cargo.toml)" | tr -cd '[:digit:].')"
+          docker tag $IMAGE_ID $IMAGE_ID:$VERSION
+
+      - name: Log into registry
+        run: |
+          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login ${{ secrets.DOCKER_REGISTRY_URL }} -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
+
+      - name: Push image
+        run: |
+          docker image push --all-tags $IMAGE_ID
