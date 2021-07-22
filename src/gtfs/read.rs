@@ -400,6 +400,16 @@ where
 
     for (vj_idx, mut stop_times) in tmp_vjs {
         stop_times.sort_unstable_by_key(|st| st.stop_sequence);
+        stop_times.dedup_by(|st2, st1| {
+            let is_same_seq = st2.stop_sequence == st1.stop_sequence;
+            if is_same_seq {
+                warn!(
+                    "remove duplicated stop_sequence '{}' of vehicle '{}'",
+                    st2.stop_sequence, st2.trip_id
+                );
+            }
+            is_same_seq
+        });
         let st_values = interpolate_undefined_stop_times(
             &collections.vehicle_journeys[vj_idx].id,
             &stop_times,
